@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Layout, Space , InputNumber, Button } from 'antd';
+import { Layout, Space , InputNumber, Button, notification } from 'antd';
 import { Component, useEffect, useState } from "react";
 import { Map, Marker, GoogleApiWrapper,Circle } from 'google-maps-react';
 import NearbyPlacesService from "../services/NearbyPlacesService";
@@ -58,18 +58,48 @@ const { isLoaded } = useJsApiLoader({
 
 const [center, setCenter] = useState({ lat: 40.93363, lng: 29.32694 });
 
+const openSuccessNotification = () => {
+  notification.open({
+    message: 'Notification',
+    description:
+      'Success!',
+    onClick: () => {
+    },
+  });
+};
+
+const openFailNotification = (error) => {
+  if (error && error.data && error.data.errorDesc) {
+    const errorStatus = error.data.errorCode;
+    const errorMessage = error.data.errorDesc;
+    notification.open({
+      message: "Error Code: "+ errorStatus,
+      description: errorMessage,
+      onClick: () => {
+      },
+    });
+  } else {
+    notification.open({
+      message: "Error",
+      description: "Error!",
+      onClick: () => {
+      },
+    });
+  }
+};
+
 const handleOk = async () => {
   try {
     const response = await NearbyPlacesService.getLocation(latitude, longitude, radius);
     const parsedPlaces = JSON.parse(response?.data?.apiResp)
 
-    // openSuccessNotification();
+    openSuccessNotification();
     setPlaces(parsedPlaces);
     setCenter({ lat: latitude, lng: longitude });
 
   } catch (error) {
     console.error('Error fetching nearby places:', error);
-    // openFailNotification();
+    openFailNotification(error.data);
   }
 };
 
