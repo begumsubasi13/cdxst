@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Layout, Space , InputNumber, Button } from 'antd';
 import { Component, useEffect, useState } from "react";
-import { Map, Marker, GoogleApiWrapper } from 'google-maps-react';
+import { Map, Marker, GoogleApiWrapper,Circle } from 'google-maps-react';
 import NearbyPlacesService from "../services/NearbyPlacesService";
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, MarkerF, useJsApiLoader } from '@react-google-maps/api';
 
 const { Header, Footer, Sider, Content } = Layout;
 
@@ -16,7 +16,7 @@ const headerStyle = {
 
 const contentStyle = {
   textAlign: 'center',
-  minHeight: 'calc(100vh - 64px - 70px)', // Adjust height to fill remaining space, minus header and footer height
+  minHeight: 'calc(100vh - 64px - 70px)',
   color: '#fff',
   backgroundColor: '#0958d9',
 };
@@ -39,11 +39,6 @@ const mapContainerStyle = {
   height: '400px',
 };
 
-const center = {
-  lat: 38.68,
-  lng: -101.07,
-};
-
 export default function HomePage(props) {
 
 // These three parameters can be defined in a single object,
@@ -53,6 +48,7 @@ const [longitude, setLongitude] = useState();
 const [radius, setRadius] = useState();
 
 const [places, setPlaces] = useState([]);
+
 const [map, setMap] = useState(null);
 
 const { isLoaded } = useJsApiLoader({
@@ -60,19 +56,26 @@ const { isLoaded } = useJsApiLoader({
   googleMapsApiKey: 'xxx',
 });
 
+const [center, setCenter] = useState({ lat: 40.93363, lng: 29.32694 });
 
-    const handleOk = async () => {
-      try {
-          const response = await NearbyPlacesService.getLocation(latitude, longitude, radius);
-          console.log('Response:', response);
-          const nearbyPlaces = response.data.apiResp;
-      setPlaces(nearbyPlaces);
-          // openSuccessNotification();
-      } catch (error) {
-          console.error('Error fetching nearby places:', error);
-          // openFailNotification();
-      }
-  };
+const handleOk = async () => {
+  try {
+    const response = await NearbyPlacesService.getLocation(latitude, longitude, radius);
+    const parsedPlaces = JSON.parse(response?.data?.apiResp)
+
+    // openSuccessNotification();
+    setPlaces(parsedPlaces);
+    setCenter({ lat: latitude, lng: longitude });
+
+  } catch (error) {
+    console.error('Error fetching nearby places:', error);
+    // openFailNotification();
+  }
+};
+
+useEffect(() => {
+   onLoad();
+},[handleOk]);
 
       const handleClear = () => {
         // Clear all input fields
@@ -132,20 +135,22 @@ return (
       
       <Button onClick={handleClear}>Clear</Button>
 
-      {isLoaded && (
+{isLoaded && (
     <GoogleMap
     mapContainerStyle={mapContainerStyle}
-    zoom={12}
+    zoom={13}
     center={center}
     onLoad={onLoad}
   >
-    {places.map(place => (
-      <Marker
-        key={place.id}
-        position={{ lat: place.latitude, lng: place.longitude }}
+    {places && places.results?.length > 0 && (places?.results?.map(place => (
+      <MarkerF
+        key={place.place_id}
+        position={{ lat: place.geometry.location.lat , lng: place.geometry.location.lng }}
       />
-    ))}
-  </GoogleMap>)}
+    )))}
+
+  </GoogleMap>
+  )}
 
         </Content>
       </Layout>
