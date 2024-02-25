@@ -3,112 +3,105 @@ import { Layout, Space , InputNumber, Button, notification } from 'antd';
 import { Component, useEffect, useState } from "react";
 import { Map, Marker, GoogleApiWrapper,Circle } from 'google-maps-react';
 import NearbyPlacesService from "../services/NearbyPlacesService";
-import { GoogleMap, MarkerF, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, InfoWindow, InfoWindowF, MarkerF, useJsApiLoader } from '@react-google-maps/api';
+import './HomePage.css';
 
-const { Header, Footer, Sider, Content } = Layout;
+      const { Header, Footer, Sider, Content } = Layout;
 
-const headerStyle = {
-  textAlign: 'center',
-  color: '#fff',
-  lineHeight: '64px',
-  backgroundColor: '#4096ff',
-};
+      export default function HomePage(props) {
 
-const contentStyle = {
-  textAlign: 'center',
-  minHeight: 'calc(100vh - 64px - 70px)',
-  color: '#fff',
-  backgroundColor: '#0958d9',
-};
+      // These three parameters can be defined in a single object,
+      // but they are defined this way because the relevant method is required to accept three separate parameters.
+      const [latitude, setLatitude] = useState();
+      const [longitude, setLongitude] = useState();
+      const [radius, setRadius] = useState();
 
-const siderStyle = {
-  textAlign: 'center',
-  lineHeight: '120px',
-  color: '#fff',
-  backgroundColor: '#1677ff',
-};
+      const [places, setPlaces] = useState([]);
 
-const footerStyle = {
-  textAlign: 'center',
-  color: '#fff',
-  backgroundColor: '#4096ff',
-};
+      const [map, setMap] = useState(null);
 
-const mapContainerStyle = {
-  width: '100%',
-  height: '400px',
-};
+      const { isLoaded } = useJsApiLoader({
+        id: 'google-map-script',
+        googleMapsApiKey: 'xxx',
+      });
+      const [activeMarker, setactiveMarker] = useState(null);
 
-export default function HomePage(props) {
+      const [center, setCenter] = useState({ lat: 40.93363, lng: 29.32694 });
 
-// These three parameters can be defined in a single object,
-// but they are defined this way because the relevant method is required to accept three separate parameters.
-const [latitude, setLatitude] = useState();
-const [longitude, setLongitude] = useState();
-const [radius, setRadius] = useState();
+      const centerMarkerIcon = {
+        url: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
+        // scaledSize: new window.google.maps.Size(40, 40), 
+      };
 
-const [places, setPlaces] = useState([]);
+      const openSuccessNotification = () => {
+        notification.open({
+          message: 'Notification',
+          description:
+            'Success!',
+          onClick: () => {
+          },
+        });
+      };
 
-const [map, setMap] = useState(null);
+      const openFailNotification = (error) => {
+        if (error && error.data && error.data.errorDesc) {
+          const errorStatus = error.data.errorCode;
+          const errorMessage = error.data.errorDesc;
+          notification.open({
+            message: "Error Code: "+ errorStatus,
+            description: errorMessage,
+            onClick: () => {
+            },
+          });
+        } else {
+          notification.open({
+            message: "Error",
+            description: "Error!",
+            onClick: () => {
+            },
+          });
+        }
+      };
 
-const { isLoaded } = useJsApiLoader({
-  id: 'google-map-script',
-  googleMapsApiKey: 'xxx',
-});
+      const handleActiveMarker = (marker) => {
+        if(marker === activeMarker){
+            return;
+        }
+        setactiveMarker(marker);
+      };
 
-const [center, setCenter] = useState({ lat: 40.93363, lng: 29.32694 });
+      const isCenterMarker = (markerLat, markerLng) => {
+        
+        
+        if(markerLat === latitude && markerLng === longitude){
+          // console.log(markerLat,markerLng);
+           return true;
+        }
+        else {
+          return false;
+        }
+      };
 
-const openSuccessNotification = () => {
-  notification.open({
-    message: 'Notification',
-    description:
-      'Success!',
-    onClick: () => {
-    },
-  });
-};
+      const handleOk = async () => {
+        try {
+          const response = await NearbyPlacesService.getLocation(latitude, longitude, radius);
+          const parsedPlaces = JSON.parse(response?.data?.apiResp)
 
-const openFailNotification = (error) => {
-  if (error && error.data && error.data.errorDesc) {
-    const errorStatus = error.data.errorCode;
-    const errorMessage = error.data.errorDesc;
-    notification.open({
-      message: "Error Code: "+ errorStatus,
-      description: errorMessage,
-      onClick: () => {
-      },
-    });
-  } else {
-    notification.open({
-      message: "Error",
-      description: "Error!",
-      onClick: () => {
-      },
-    });
-  }
-};
+          openSuccessNotification();
+          setPlaces(parsedPlaces);
+          setCenter({ lat: latitude, lng: longitude });
 
-const handleOk = async () => {
-  try {
-    const response = await NearbyPlacesService.getLocation(latitude, longitude, radius);
-    const parsedPlaces = JSON.parse(response?.data?.apiResp)
+        } catch (error) {
+          console.error('Error fetching nearby places:', error);
+          openFailNotification(error.data);
+        }
+      };
 
-    openSuccessNotification();
-    setPlaces(parsedPlaces);
-    setCenter({ lat: latitude, lng: longitude });
-
-  } catch (error) {
-    console.error('Error fetching nearby places:', error);
-    openFailNotification(error.data);
-  }
-};
-
-useEffect(() => {
-   onLoad();
-},[handleOk]);
+      useEffect(() => {
+        onLoad();
+      },[handleOk]);
 
       const handleClear = () => {
-        // Clear all input fields
         setLatitude('');
         setLongitude('');
         setRadius('');
@@ -120,10 +113,10 @@ useEffect(() => {
     
 return (
   <Layout style={{ minHeight: '100vh' }}>
-    <Header style={headerStyle}>Header</Header>
-    <Content style={contentStyle}>
+    <Header className="header">Header</Header>
+    <Content className="content">
       <Layout style={{ minHeight: 'calc(100vh - 64px)' }}>
-        <Sider width="20%" style={siderStyle}>
+        <Sider width="20%" className="sider">
           Sider
         </Sider>
         <Content>
@@ -157,26 +150,39 @@ return (
               onChange={value => setRadius(value)}
             />
           </Space>
-          <Button 
+      <Button 
       style={{
       width: 300,
       marginBottom:20,}} 
       onClick={() => handleOk()}>Get Nearby Places</Button> 
       
-      <Button onClick={handleClear}>Clear</Button>
+      <Button 
+      style={{
+      width: 100,
+      marginLeft:20,}} 
+      onClick={handleClear}>Clear</Button>
 
 {isLoaded && (
     <GoogleMap
-    mapContainerStyle={mapContainerStyle}
+    mapContainerClassName="map-container"
     zoom={13}
     center={center}
     onLoad={onLoad}
+    onClick={() => setactiveMarker(null)}
   >
     {places && places.results?.length > 0 && (places?.results?.map(place => (
       <MarkerF
         key={place.place_id}
         position={{ lat: place.geometry.location.lat , lng: place.geometry.location.lng }}
-      />
+        onClick={() => handleActiveMarker(place.place_id)}
+        icon={isCenterMarker(place.geometry.location.lat,place.geometry.location.lng) ? centerMarkerIcon : undefined}
+      >
+        {
+        activeMarker === place.place_id ? <InfoWindowF onCloseClick={() => setactiveMarker(null)}>
+        <div style={{ color: 'black' }}>{place.name}</div>
+        </InfoWindowF> : null 
+        }
+        </MarkerF>
     )))}
 
   </GoogleMap>
@@ -185,7 +191,7 @@ return (
         </Content>
       </Layout>
     </Content>
-    <Footer style={footerStyle}>Footer</Footer>
+    <Footer className="footer">@ 2024 - Begüm SUBAŞI </Footer>
   </Layout>
 );
 
